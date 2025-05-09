@@ -1,5 +1,4 @@
-import NoteList from '../components/NoteList';
-import { useEffect } from 'react';
+import NoteList from "../components/NoteList";
 
 interface SyncManager {
   getTags(): Promise<string[]>;

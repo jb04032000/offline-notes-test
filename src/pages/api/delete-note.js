@@ -1,31 +1,26 @@
+import db from "../../lib/db";
 
 export default async function handler(req, res) {
-  if (req.method === 'DELETE') {
+  if (req.method === "DELETE") {
     try {
-      const { id } = req.query; // ID of the note to delete (likely localId stored as _id by client)
+      const { id } = req.query;
 
       if (!id) {
-        return res.status(400).json({ error: 'Missing note ID' });
+        return res.status(400).json({ error: "ID is required" });
       }
 
-      // TODO: Implement logic to delete the note from your chosen data store.
-      // - Connect to the database/data source.
-      // - Find and delete the note by its unique identifier (`id`).
-      // - Handle the case where the note is not found.
-      // - Replace the example response below.
+      const result = db.prepare("DELETE FROM notes WHERE id = ?").run(id);
 
-      const noteFound = true; // Placeholder
-
-      if (noteFound) {
-        res.status(200).json({ message: 'Note deleted successfully' });
-      } else {
-        res.status(404).json({ error: 'Note not found' });
+      if (result.changes === 0) {
+        return res.status(404).json({ error: "Note not found" });
       }
+
+      res.status(200).json({ message: "Note deleted successfully" });
     } catch (error) {
-      console.error('Error deleting note:', error);
-      res.status(500).json({ error: 'Failed to delete note' });
+      console.error("Error deleting note:", error);
+      res.status(500).json({ error: "Failed to delete note" });
     }
   } else {
-    res.status(405).json({ error: 'Method not allowed' });
+    res.status(405).json({ error: `Method ${req.method} not allowed` });
   }
 }

@@ -1,250 +1,181 @@
-import React, { useEffect, useRef, useState } from 'react';
-import styled from 'styled-components';
-import SyncIndicator from './SyncIndicator'
-import { Note } from '../utils/notes'
-import { Button } from '../styles/styled';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
+import React from "react";
+import styled from "styled-components";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faClock,
+  faSync,
+  faEdit,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
+import { Note } from "../utils/notes";
 
-const NoteItemWrapper = styled.div`
-  margin-bottom: 1rem;
-`;
-
-const NoteFrame = styled.li<{ isSubmitted?: boolean }>`
-  position: relative;
+const NoteItemContainer = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
+  gap: 0.5rem;
   padding: 1rem;
   border: 1px solid #ccc;
   border-radius: 4px;
-  margin-bottom: 0.25rem;
-  max-height: 150px;
-  overflow-y: auto;
-  width: 500px;
-  word-wrap: break-word;
-  overflow: visible;
-  background-color: ${props => (!props.isSubmitted ? '#eee' : 'transparent')};
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto 1rem;
+  background-color: #fff;
+  box-sizing: border-box;
 
-  .note-timestamp {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    margin: 0.5rem;
-    font-size: 0.8rem;
-    color: #888;
-  }
-
-  .edit-buttons {
-    position: absolute;
-    bottom: 0.5rem;
-    right: 0.5rem;
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .note-content {
-    width: 95%;
-    flex-grow: 1;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-    word-break: break-word;
-    overflow-y: auto;
-    max-width: 100%;
-    margin-bottom: 0.75rem;
-  }
-
-  textarea {
-    width: 100%;
-    border: none;
-    resize: none;
-    overflow: hidden;
-    font-size: 1rem;
-    line-height: 1;
-    padding: 0;
-    margin: 0;
-    height: auto;
-    min-height: 0rem;
+  @media (max-width: 768px) {
+    max-width: 95%;
+    padding: 0.75rem;
   }
 `;
 
-const Content = styled.div`
-  flex-grow: 1;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-word;
-  overflow-y: auto;
-  max-width: 100%;
-  margin-bottom: 1rem;
-  padding-bottom: 0.25rem;
-`;
-
-const SaveButton = styled(Button)`
-  padding: 5px 10px;
-  font-size: 0.8rem;
-`;
-
-const CancelButton = styled(Button)`
-  padding: 5px 10px;
-  font-size: 0.8rem;
-`;
-
-const DeleteButton = styled.button`
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: none;
-  border: none;
-  color: rgba(0, 0, 0, 0.4);
-  font-size: 1rem;
-  cursor: pointer;
-`;
-
-const EditButton = styled(Button)`
-  position: absolute;
-  padding: 5px 10px;
-  bottom: 0.5rem;
-  right: 0.5rem;
-  font-size: 0.8rem;
-  cursor: pointer;
-`;
-
-const OfflineIndicatorWrapper = styled.div`
-  display: flex;
-  flex-direction: column; /* Update to column */
-  align-items: flex-end; /* Align text elements to the right */
-  justify-content: flex-end; /* Align text elements to the bottom */
-  position: relative;
-  bottom: 0;
-  right: 0;
-  font-size: 0.75rem; /* Adjust the font size to make the icon smaller */
-  color: #fff;
-`;
-
-const OfflineIndicator = styled.div`
+const NoteContent = styled.div`
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 0.25rem; /* Add margin-bottom for spacing between pairs */
+  gap: 0.5rem;
+  flex-wrap: wrap;
 `;
 
-const OfflineIndicatorIcon = styled(FontAwesomeIcon)`
-  color: red;
-  margin-right: 0.25rem;
+const NoteTitle = styled.h3<{ isDeleted: boolean }>`
+  margin: 0;
+  font-size: 1.2rem;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: ${({ isDeleted }) => (isDeleted ? "line-through" : "none")};
+
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+  }
 `;
 
-const OfflineIndicatorText = styled.span`
-  font-size: 0.8rem;
-  color: red;
+const NoteText = styled.p<{ isDeleted: boolean }>`
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  color: #333;
+  text-decoration: ${({ isDeleted }) => (isDeleted ? "line-through" : "none")};
+
+  @media (max-width: 768px) {
+    font-size: 0.95rem;
+  }
+`;
+
+const NoteTags = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const Tag = styled.span<{ isDeleted: boolean }>`
+  background-color: #e0e0e0;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  text-decoration: ${({ isDeleted }) => (isDeleted ? "line-through" : "none")};
+
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+  }
+`;
+
+const NoteActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+`;
+
+const ActionButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #007bff;
+  padding: 0.2rem;
+
+  &:hover {
+    color: #0056b3;
+  }
+
+  &:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+  }
+`;
+
+const SyncIcon = styled.div`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: #888;
+  vertical-align: middle;
+
+  @media (max-width: 768px) {
+    width: 14px;
+    height: 14px;
+  }
 `;
 
 interface NoteItemProps {
-  note: Note,
-  onDeleteNote: (noteId: string) => Promise<void>;
-  onEditNote: (noteId: string, updatedTitle: string) => Promise<void>;
+  note: Note;
+  onEdit: (note: Note) => void;
+  onDelete: (id: string) => void;
+  isNoteSyncing: boolean;
 }
 
-const NoteItem: React.FC<NoteItemProps> = ({ note, onDeleteNote, onEditNote }) => {
-  const [isSyncing, setSyncing] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [title, setTitle] = useState(note.title);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const handleDelete = async () => {
-    // Set syncing state to true before making the request
-    setSyncing(true);
-
-    try {
-      // Make the delete request to the server
-      if (note.localId !== undefined) {
-        await onDeleteNote(note.localId);
-      }
-    } catch (error) {
-      console.error('Error deleting note:', error);
-    } finally {
-      // Set syncing state back to false after the request is complete
-      setSyncing(false);
-    }
-  };
-
-  const handleEdit = () => {
-    setIsEditing(true);
-    setTitle(note.title);
-  };
-
-  const handleSave = async () => {
-    if (note.localId !== undefined) {
-      setSyncing(true);
-      await onEditNote(note.localId, title);
-      setSyncing(false);
-      setIsEditing(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setTitle(note.title);
-  };
-
-  useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-      textareaRef.current.value = note.title;
-    }
-  }, [isEditing, title]);
+const NoteItem: React.FC<NoteItemProps> = ({
+  note,
+  onEdit,
+  onDelete,
+  isNoteSyncing,
+}) => {
+  const isPendingSync =
+    note._id === undefined ||
+    !note.synced ||
+    note.localDeleteSynced === false ||
+    note.localEditSynced === false;
+  const isDeleted = note.localDeleteSynced === false;
 
   return (
-    <NoteItemWrapper>
-      <NoteFrame isSubmitted={note._id !== undefined}>
-        {isSyncing && <SyncIndicator/>}
-        <DeleteButton onClick={handleDelete}>[x]</DeleteButton>
-        <p className="note-timestamp">{new Date(note.createdAt).toUTCString()}</p>
-        <div className="note-content">
-          {isEditing ? (
-            <textarea
-              ref={textareaRef}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              autoFocus
-            />
-          ) : (
-            <Content>{note.title}</Content>
-          )}
-        </div>
-        {isEditing ? (
-          <div className="edit-buttons">
-            <SaveButton onClick={handleSave}>Save</SaveButton>
-            <CancelButton onClick={handleCancel}>Cancel</CancelButton>
-          </div>
-        ) : (
-          <EditButton onClick={handleEdit}>Edit</EditButton>
-        )}
-      </NoteFrame>
-      {(note.localDeleteSynced === false || note.localEditSynced === false || note._id === undefined) && (
-        <OfflineIndicatorWrapper>
-          {note.localDeleteSynced === false && (
-            <OfflineIndicator>
-              <OfflineIndicatorIcon icon={faExclamationCircle} />
-              <OfflineIndicatorText>Note deletion not synced</OfflineIndicatorText>
-            </OfflineIndicator>
-          )}
-          {note.localEditSynced === false && (
-            <OfflineIndicator>
-              <OfflineIndicatorIcon icon={faExclamationCircle} />
-              <OfflineIndicatorText>Note edit not synced</OfflineIndicatorText>
-            </OfflineIndicator>
-          )}
-          {note._id === undefined && (
-            <OfflineIndicator>
-              <OfflineIndicatorIcon icon={faExclamationCircle} />
-              <OfflineIndicatorText>Note submission not synced</OfflineIndicatorText>
-            </OfflineIndicator>
-          )}
-        </OfflineIndicatorWrapper>
+    <NoteItemContainer>
+      <NoteContent>
+        <NoteTitle isDeleted={isDeleted}>
+          {note.title}
+          {isPendingSync ? (
+            <SyncIcon>
+              <FontAwesomeIcon
+                icon={isNoteSyncing ? faSync : faClock}
+                spin={isNoteSyncing}
+              />
+            </SyncIcon>
+          ) : null}
+        </NoteTitle>
+      </NoteContent>
+      {note.content && (
+        <NoteText isDeleted={isDeleted}>{note.content}</NoteText>
       )}
-    </NoteItemWrapper>
+      {note.tags && note.tags.length > 0 && (
+        <NoteTags>
+          {note.tags.map((tag) => (
+            <Tag key={tag} isDeleted={isDeleted}>
+              {tag}
+            </Tag>
+          ))}
+        </NoteTags>
+      )}
+      <NoteActions>
+        <ActionButton onClick={() => onEdit(note)} disabled={isDeleted}>
+          <FontAwesomeIcon icon={faEdit} />
+        </ActionButton>
+        <ActionButton
+          onClick={() => onDelete(note.localId!)}
+          disabled={isDeleted}
+        >
+          <FontAwesomeIcon icon={faTrash} />
+        </ActionButton>
+      </NoteActions>
+    </NoteItemContainer>
   );
 };
 

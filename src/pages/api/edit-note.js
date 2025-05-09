@@ -1,33 +1,63 @@
+import db from "../../lib/db";
 
 export default async function handler(req, res) {
-  if (req.method === 'PUT') {
-    try {
-      const { id } = req.query; // ID of the note to edit (likely localId stored as _id by client)
-      const { title: noteTitle } = req.body; // New title
+  res.setHeader("Allow", ["PUT"]);
 
-      if (!id || typeof noteTitle !== 'string') {
-        return res.status(400).json({ error: 'Missing note ID or title' });
-      }
+  if (req.method !== "PUT") {
+    return res.status(405).json({ error: `Method ${req.method} not allowed` });
+  }
 
-      // TODO: Implement logic to update the note in your chosen data store.
-      // - Connect to the database/data source.
-      // - Find the note by its unique identifier (`id`).
-      // - Update the note's title to `noteTitle`.
-      // - Handle the case where the note is not found.
-      // - Replace the example response below.
+  const { id } = req.query;
+  const { title, content, tags } = req.body;
 
-      const noteFound = true; // Placeholder
+  if (!id || !title) {
+    console.error("Missing required fields:", { id, title });
+    return res.status(400).json({ error: "ID and title are required" });
+  }
 
-      if (noteFound) {
-        res.status(200).json({ message: 'Note edited successfully' });
-      } else {
-        res.status(404).json({ error: 'Note not found' });
-      }
-    } catch (error) {
-      console.error('Error editing note:', error);
-      res.status(500).json({ error: 'Failed to edit note' });
+  try {
+    const note = db.prepare("SELECT version FROM notes WHERE id = ?").get(id);
+    if (!note) {
+      console.error("Note not found:", { id });
+      return res.status(404).json({ error: "Note not found" });
     }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+
+    const now = new Date().toISOString();
+    const result = db
+      .prepare(
+        `
+      UPDATE notes
+      SET title = ?,
+          content = ?,
+          tags = ?,
+          updatedAt = ?,
+          lastSyncedAt = ?,
+          synced = ?,
+          version = ?
+      WHERE id = ?
+    `
+      )
+      .run(
+        title,
+        content || null,
+        tags ? JSON.stringify(tags) : "[]",
+        now,
+        now,
+        1,
+        note.version + 1,
+        parseInt(id, 10)
+      );
+
+    if (result.changes === 0) {
+      console.error("No changes made, note not found:", { id });
+      return res.status(404).json({ error: "Note not found" });
+    }
+
+    res.status(200).json({ message: "Note updated successfully" });
+  } catch (error) {
+    console.error("Error updating note:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to update note", details: error.message });
   }
 }
