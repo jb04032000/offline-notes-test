@@ -9,7 +9,6 @@ export const openDB = () => {
 
       request.onupgradeneeded = (event) => {
         db = event.target.result;
-        //db.createObjectStore('requests', { keyPath: 'id', autoIncrement: true });
         try {
           db.deleteObjectStore('local-notes');
         } catch {

@@ -34,7 +34,6 @@ const OfflineIndicator: React.FC<{ onOnline: () => void }> = ({ onOnline }) => {
   const [isOffline, setIsOffline] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Set initial state client-side
     setIsOffline(!navigator.onLine);
 
     const handleOnline = () => {
@@ -55,7 +54,6 @@ const OfflineIndicator: React.FC<{ onOnline: () => void }> = ({ onOnline }) => {
     };
   }, [onOnline]);
 
-  // Render nothing until client-side state is set
   if (isOffline === null) return null;
 
   return (

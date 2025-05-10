@@ -1,17 +1,12 @@
 # Offline Notes App - Interview Task
 
-## Description
-This is a take home assignment for interview candidates. 
-Read this file carefully and implement the [tasks](#your-tasks) mentioned below. 
-Check the [Deliverables](#Deliverables) section for what to submit.
-
 ## How to Run the App
 
 This application is built using Next.js.
 
 1.  **Clone/Fork:**
     ```bash
-    git clone https://github.com/interview177/offline-notes-test
+    git clone [https://github.com/jb04032000/offline-notes-test](https://github.com/jb04032000/offline-notes-test)
     cd offline-notes-test
     ```
 2.  **Install Dependencies:**
@@ -34,24 +29,29 @@ This is a note-taking application designed to work offline first.
 
 **Key Components:**
 
-*   **Frontend:** Built with [Next.js](https://nextjs.org/), [React](https://reactjs.org/), and [TypeScript](https://www.typescriptlang.org/).
-*   **Offline Storage:** Uses the browser's **IndexedDB** to store notes locally. This allows the core functionality (create, read, update, delete notes) to work even when offline.
-*   **Synchronization:**
-    *   The app detects online/offline status using `navigator.onLine`.
-    *   A **Service Worker** (`public/sw.js`, registered in `src/components/NoteList.tsx`) is set up to handle background sync events when the application comes online.
-    *   The `refreshNotes` function in `src/utils/notes.ts` attempts to fetch data from the server API and reconcile local (IndexedDB) and server states.
-*   **Backend API:** Next.js API routes are defined in `src/pages/api/`. These are intended to interact with a persistent data store.
-*   **UI:** Basic React components located in `src/components`.
+* **Frontend:** Built with [Next.js](https://nextjs.org/), [React](https://reactjs.org/), and [TypeScript](https://www.typescriptlang.org/).
+* **Offline Storage:** Uses the browser's **IndexedDB** to store notes locally. This allows the core functionality (create, read, update, delete notes) to work even when offline.
+* **Synchronization:**
+    * The app detects online/offline status using `navigator.onLine`.
+    * A **Service Worker** (`public/sw.js`, registered in `src/components/NoteList.tsx`) is set up to handle background sync events when the application comes online.
+    * The `refreshNotes` function in `src/utils/notes.ts` attempts to fetch data from the server API and reconcile local (IndexedDB) and server states.
+* **Backend API:** Next.js API routes are defined in `src/pages/api/`. These interact with the SQLite database.
+* **UI:** React components located in `src/components`, styled with Tailwind CSS.
 
 **What Works:**
 
-*   Creating, viewing, editing, and deleting notes while offline. Changes are saved to IndexedDB.
-*   Basic detection of online/offline status.
-*   The framework for triggering synchronization exists (Service Worker, `refreshNotes` function).
+* Creating, viewing, editing, and deleting notes while offline. Changes are saved to IndexedDB.
+* Basic detection of online/offline status.
+* The framework for triggering synchronization exists (Service Worker, `refreshNotes` function).
+* Backend data store implemented using SQLite with `better-sqlite3`.
+* Users can add and remove tags to notes.
+* Notes can be filtered on the client-side by selecting tags.
+* UI has been significantly improved with Tailwind CSS.
 
-**What's Missing:**
+**What's Missing (as per the original requirements):**
 
-*   **Backend Data Store Implementation:** The API routes (`src/pages/api/notes.js`, `save-note.js`, `edit-note.js`, `delete-note.js`) currently contain **placeholder comments** (`// TODO: Implement logic...`). **There is no actual database or persistent storage connected on the backend.** These API routes need to be implemented to interact with a data store of your choice.
+* Explicit conflict detection logic to identify concurrent modifications.
+* Conflict resolution UI.
 
 **Architecture Diagram:**
 
@@ -62,61 +62,73 @@ graph LR
         SW[Service Worker]
         IDB[(IndexedDB)]
     end
-
     subgraph Server
         ServerAPI[Next.js Server API]
     end
-
     subgraph Data Store
-        DS[(? Your Data Store ?)]
+        DS[SQLite (better-sqlite3)]
     end
-
     Client -- Uses/Stores --> IDB
     Client -- Registers/Listens --> SW
     Client -- API Calls --> ServerAPI
     SW -- Sync Events --> Client
-    ServerAPI -- Needs Implementation --> DS
-```
+    ServerAPI -- Interacts With --> DS
+Deliverables:
+https://github.com/jb04032000/offline-notes-test
 
-## Your Tasks
+Crucially: This README.md file includes the following:
 
-Your goal is to enhance this application by implementing the backend data store and adding new features. Create a fork of this repository and implement the following tasks on your fork.
+Backend Data Store:
+For the backend data store, I chose to implement SQLite using the better-sqlite3 package. I opted for SQLite due to its simplicity and the fact that it's file-based, making it relatively easy to set up and manage for a demonstration project like this.
 
-**Requirements:**
+I specifically selected better-sqlite3 over the standard sqlite3 package because it generally offers better performance and a more modern API. It's known for being faster and providing a more convenient way to interact with SQLite databases in Node.js environments. While it might not be the ideal choice for a highly scalable production application, it serves well for illustrating the backend logic and integration with the API routes, and better-sqlite3 provides a smoother development experience.
 
-0. **Implement the Backend Data Store:**
-    - **This is the foundational task.** Choose a data store for the backend (e.g., MongoDB, PostgreSQL, SQLite, or even a simple JSON file if you want).
-    - Implement the logic within the placeholder comments in the API routes (`src/pages/api/notes.js`, `save-note.js`, `edit-note.js`, `delete-note.js`) to perform the necessary CRUD operations (Create, Read, Update, Delete) using your chosen data store.
-    -   Ensure the API routes correctly interact with the client-side expectations (e.g., `save-note.js` should return the ID assigned by your data store).
+To run the application with SQLite, you'll need to ensure the better-sqlite3 package is installed (which it should be if you followed the npm install or yarn install steps). The database file (notes.db) will be created in the root directory of the project if it doesn't already exist. No specific environment variables are needed for this setup.
 
-1. **Tag Implementation:**
-    -   Allow users to add/remove simple string tags to individual notes. You can choose the UI for adding/displaying tags (e.g., input field, predefined list).
-    -   Store the tag data associated with each note (this should work with both your backend data store and the local IndexedDB storage).
+State Management for Tagging and Filtering:
+I managed the state for both the tagging and filtering features using React hooks.
 
-2. **Filtering Implementation:**
-    -   Provide a UI mechanism (e.g., dropdown, checkboxes) to allow users to select one or more tags to filter the main note list.
-    -   The filtering logic must operate purely on the **client-side** based on the notes currently loaded/available locally in IndexedDB.
+Tagging: Within the NoteEditor component, I used useState to manage the current input value for adding new tags and another useState to hold the array of tags associated with the current note. When a user enters a tag and submits it, the tag is added to this local state. This state is then included when saving or updating the note, both locally in IndexedDB and via the API to the backend.
+Filtering: In the NoteList component, I used useState to maintain the list of selected tags for filtering. A separate component (TagFilter) allows users to select tags. When the selected tags change, an useEffect hook filters the displayed notes based on whether their tags (stored locally in the notes data) include any of the selected filter tags.
+Tag Storage Integration:
+Tags are stored as a comma-separated string within the tags property of each note, both in the backend SQLite database and in the local IndexedDB.
 
-3. **State Management Constraint:**
-    -   Implement all required state management for the tagging and filtering features using **native React hooks** (`useState`, `useEffect`, `useCallback`, `useContext` etc.). Do **not** use external state management libraries like Redux, Zustand, etc.
+Backend (SQLite): The notes table has a tags column of type TEXT to store these comma-separated strings. When saving or retrieving notes via the API, the tag array from the frontend is joined into a string before being stored, and the string from the database is split back into an array when retrieved.
+Frontend (IndexedDB): The tags property of the note object stored in IndexedDB also holds an array of strings. When syncing data with the backend, the conversion between the array and the comma-separated string happens in the API routes and the refreshNotes utility function.
+Pros of this structure:
 
-4. **Conflict Detection:**
-    -   Implement logic within `src/utils/notes.ts` (likely in `refreshNotes` or related functions) to detect potential conflicts. A conflict occurs when a note has been modified locally while offline *and* the same note has also been modified on the server (in the data store you implemented) since the last sync.
-    -   Define what constitutes a "conflict" (e.g., different titles, different content/tags).
-    -   **For this task, simply detecting and logging the conflict is sufficient.** You do *not* need to implement a full conflict resolution UI, but you should think about how you *would* resolve it (see Deliverables).
+Simplicity: It's relatively straightforward to implement and query in SQLite using LIKE clauses if more advanced filtering were needed on the backend.
+Ease of transfer: Converting between an array in JavaScript and a simple string for storage and API transfer is easy.
+Cons of this structure:
 
-5. **UI Cleanup:**
-    -   The current UI is very basic. Improve the visual presentation and user experience. You are encouraged to use **Tailwind CSS** (it's already installed) for styling, but you can also continue using styled-components if preferred. Make it look more polished.
+Querying complexity for advanced filtering: If we needed more complex backend filtering based on tags (e.g., notes with all of the selected tags), using LIKE clauses with comma-separated strings can become cumbersome and inefficient. A dedicated tags table with a many-to-many relationship would be more suitable for such scenarios in a larger application.
+Potential for inconsistencies: Ensuring consistent formatting (e.g., no extra spaces between commas and tags) requires careful handling during data manipulation.
+Conflict Detection Logic:
+Currently, the refreshNotes function fetches the latest notes from the server and updates the local IndexedDB. While this ensures the local data is eventually consistent with the server, it doesn't explicitly detect conflicts arising from concurrent modifications.
 
-## Deliverables:
+My approach to detect conflicts would involve the following:
 
-1.  A link to your Git repository (your fork) containing your completed implementation.
-2.  **Crucially:** Update *this* `README.md` file in your repository to include:
-    -   Details on the backend data store you chose and why. Add any necessary updates to the "How to Run" section based on your data store choice (e.g., specific environment variables).
-    -   An explanation of how you managed the state for tagging and filtering.
-    -   Details on how you integrated tag storage with both the backend and the existing offline IndexedDB mechanism. How did you structure the notes data with the tag data. What are the pros and cons for that structure.
-    -   An explanation of your conflict detection logic (how you identify conflicting notes).
-    -   A brief description of your proposed conflict *resolution* strategy (even though you don't need to implement the UI for it).
-3. Feel free to update this codebase as you choose. If you want to update something or fix something, you can do that. Just document what you did.
+Store a last_modified timestamp: Both in the local IndexedDB record for each note and in the corresponding record on the backend. This timestamp would be updated whenever a note is modified.
+During refreshNotes:
+Before updating a local note with the server version, compare the last_modified timestamp of the local note with the last_modified timestamp received from the server for the same note.
+If the local last_modified timestamp is more recent than the last sync time (or some other indicator of local offline modification) and the server's last_modified timestamp is also more recent than the last sync time, it indicates a potential conflict. This means both the local and server versions have been modified since the last synchronization.
+Identify the specific fields that differ (e.g., title, content, tags).
+Log these conflicting notes and the differing fields to the console.
+Proposed Conflict Resolution Strategy:
+While not implemented in the UI, my proposed conflict resolution strategy would involve:
 
-Good luck!
+User Notification: Inform the user that conflicts have been detected upon coming back online.
+Conflict Resolution UI: Provide a specific UI for resolving these conflicts. This could include:
+Displaying both the local and server versions of the conflicting note side-by-side.
+Allowing the user to choose which version to keep (local or server).
+Providing an option to manually merge changes from both versions (if feasible for the data structure).
+Automatic Merging (with caution): For simpler conflicts (e.g., different tags added independently), an automatic merging strategy might be possible, but this needs careful consideration to avoid data loss.
+Codebase Updates:
+
+Implemented a backend using SQLite with the better-sqlite3 library to persist notes.
+Created and modified API routes (/api/notes, /api/save-note, /api/edit-note, /api/delete-note) to interact with the SQLite database.
+Updated the note data structure in IndexedDB to include a tags property (as an array).
+Modified the NoteEditor component to allow users to add and remove tags.
+Implemented a TagFilter component in NoteList to filter notes based on selected tags.
+Updated the refreshNotes function in src/utils/notes.ts to fetch and synchronize tag data.
+Styled the application using Tailwind CSS to improve the visual presentation and user experience.

@@ -159,10 +159,8 @@ export async function getNotes() {
 export async function refreshNotes() {
   if (navigator.onLine) {
     try {
-      // Step 1: Get local notes
       const localNotes = await getOfflineNotes();
 
-      // Step 2: Fetch server notes
       let serverNotes: Note[] = [];
       try {
         const response = await axios.get("/api/notes");
@@ -180,14 +178,11 @@ export async function refreshNotes() {
         return;
       }
 
-      // Step 3: Detect conflicts and sync notes
       for (const localNote of localNotes) {
-        // Find matching server note
         const serverNote = localNote._id
           ? serverNotes.find((sn) => sn._id === localNote._id)
           : serverNotes.find((sn) => sn.localId === localNote.localId);
 
-        // Handle conflicts for edited notes
         if (
           localNote._id &&
           (localNote.localEditSynced === false || !localNote.synced)
@@ -269,7 +264,6 @@ export async function refreshNotes() {
               continue;
             }
           }
-          // No server note: Sync edit
           try {
             await axios.put(`/api/edit-note?id=${localNote._id}`, {
               title: localNote.title,
@@ -298,7 +292,6 @@ export async function refreshNotes() {
             console.warn(
               `Conflict detected for deletion of note localId=${localNote.localId}, _id=${localNote._id}: Note exists on server with title="${serverNote.title}"`
             );
-            // Resolution: Prefer most recent updatedAt
             if (localNote.updatedAt && serverNote.updatedAt) {
               if (
                 new Date(localNote.updatedAt) > new Date(serverNote.updatedAt)
@@ -329,7 +322,6 @@ export async function refreshNotes() {
             }
             continue;
           } else {
-            // No conflict: Sync deletion
             try {
               await axios.delete(`/api/delete-note?id=${localNote._id}`);
               await deleteOfflineNote(localNote.localId);
@@ -343,7 +335,6 @@ export async function refreshNotes() {
           }
         }
 
-        // Sync new notes
         if (
           localNote._id === undefined &&
           localNote.localDeleteSynced !== false &&
@@ -351,7 +342,6 @@ export async function refreshNotes() {
           localNote.title
         ) {
           if (serverNote && serverNote.localId === localNote.localId) {
-            // Resolution: Prefer server note if newer, else push local
             if (localNote.updatedAt && serverNote.updatedAt) {
               if (
                 new Date(localNote.updatedAt) > new Date(serverNote.updatedAt)
@@ -431,7 +421,6 @@ export async function refreshNotes() {
         }
       }
 
-      // Step 4: Pull server notes not in local (new server notes or missed updates)
       for (const serverNote of serverNotes) {
         const localNote = localNotes.find(
           (ln: any) => ln._id === serverNote._id
@@ -463,7 +452,6 @@ export async function refreshNotes() {
         }
       }
 
-      // Step 5: Clean up local notes not on server
       for (const localNote of localNotes) {
         if (
           localNote._id &&
